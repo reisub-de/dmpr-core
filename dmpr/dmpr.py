@@ -361,7 +361,7 @@ class DMPR(object):
 
         routing_data = self.routing_data[policy.name]
 
-        # Compute a routing table entry for every networf of every node
+        # Compute a routing table entry for every network of every node
         for node, node_data in self.node_data.items():
             for network in node_data['networks']:
                 if network in self.networks['retracted']:
@@ -372,27 +372,21 @@ class DMPR(object):
 
                 path = routing_data[node]['path']
 
-                if '.' in network:
-                    version = 4
-                else:
-                    version = 6
-                prefix, prefix_len = network.split('/')
+                network = ipaddress.ip_network(network)
 
                 try:
                     next_hop_ip = self._node_to_ip(
                         path.next_hop_interface,
-                        path.next_hop, version)
+                        path.next_hop, network.version)
                 except KeyError:
                     msg = "node {node} advertises IPv{version} network but " \
                           "has no IPv{version} address"
                     self.log.warning(msg.format(node=node,
-                                              version=version))
+                                              version=network.version))
                     continue
 
                 routing_table.append({
-                    'proto': 'v{}'.format(version),
-                    'prefix': prefix,
-                    'prefix-len': prefix_len,
+                    'network': network,
                     'next-hop': next_hop_ip,
                     'interface': path.next_hop_interface,
                 })
